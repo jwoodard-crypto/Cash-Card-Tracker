@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cash Card Fraud Detection Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            color: #2d3748;
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        
+        .header .timestamp {
+            color: #718096;
+            font-size: 14px;
+        }
+        
+        .alert {
+            padding: 15px 30px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-weight: 600;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .alert.success {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .alert.warning {
+            background: #ed8936;
+            color: white;
+        }
+        
+        .alert.danger {
+            background: #f56565;
+            color: white;
+        }
+        
+        .fraud-spike-alert {
+            background: linear-gradient(135deg, #fc8181 0%, #f56565 100%);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 6px 12px rgba(245, 101, 101, 0.4);
+            border: 3px solid #c53030;
+        }
+        
+        .fraud-spike-alert h3 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .fraud-spike-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            background: rgba(255,255,255,0.15);
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .fraud-spike-stat {
+            text-align: center;
+        }
+        
+        .fraud-spike-stat .label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+        
+        .fraud-spike-stat .value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+        
+        .wow-card {
+            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .wow-card h3 {
+            font-size: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .wow-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        
+        .wow-stat {
+            background: rgba(255,255,255,0.15);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .wow-stat .label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+        
+        .wow-stat .value {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .wow-stat .change {
+            font-size: 16px;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 12px;
+            display: inline-block;
+            margin-top: 5px;
+        }
+        
+        .wow-stat .change.up {
+            background: rgba(252, 129, 129, 0.3);
+        }
+        
+        .wow-stat .change.down {
+            background: rgba(154, 230, 180, 0.3);
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .metric-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .metric-card .label {
+            color: #718096;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+        
+        .metric-card .value {
+            color: #2d3748;
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .metric-card .sublabel {
+            color: #a0aec0;
+            font-size: 12px;
+        }
+        
+        .trend {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .trend.positive {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        
+        .trend.negative {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+            margin-top: 10px;
+        }
+        
+        .status-badge.normal {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        
+        .status-badge.spike {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+        
+        .status-badge.drop {
+            background: #feebc8;
+            color: #7c2d12;
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .chart-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .chart-card.full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .chart-card h3 {
+            color: #2d3748;
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        
+        .chart-container.tall {
+            height: 400px;
+        }
+        
+        .risk-alert-card {
+            background: linear-gradient(135deg, #f56565 0%, #c53030 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .risk-alert-card h3 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .risk-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(255,255,255,0.95);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .risk-table th {
+            background: #2d3748;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        .risk-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #2d3748;
+            font-size: 13px;
+        }
+        
+        .risk-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .risk-table tr:hover {
+            background: #f7fafc;
+        }
+        
+        .risk-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        
+        .risk-badge.critical {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+        
+        .risk-badge.high {
+            background: #feebc8;
+            color: #7c2d12;
+        }
+        
+        .risk-badge.medium {
+            background: #fefcbf;
+            color: #744210;
+        }
+        
+        .merchant-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .merchant-card h3 {
+            color: #2d3748;
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        
+        .merchant-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            background: #f7fafc;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .merchant-item.fraud-risk {
+            border-left-color: #f56565;
+            background: #fff5f5;
+        }
+        
+        .merchant-name {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 14px;
+            flex: 1;
+        }
+        
+        .merchant-stats {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            font-size: 13px;
+        }
+        
+        .merchant-stat-item {
+            text-align: center;
+        }
+        
+        .merchant-stat-label {
+            color: #718096;
+            font-size: 11px;
+        }
+        
+        .merchant-stat-value {
+            font-weight: 700;
+            color: #2d3748;
+        }
+        
+        .scrollable-table {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .scrollable-table::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .scrollable-table::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .scrollable-table::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        
+        .scrollable-table::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        .two-column-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 1400px) {
+            .two-column-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .refresh-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .refresh-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
+        }
+        
+        .refresh-button:active {
+            transform: translateY(0);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .header-left h1 {
+            margin: 0;
+        }
+        
+        .header-left .timestamp {
+            margin-top: 5px;
+        }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .modal-content {
+            background: white;
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            animation: slideDown 0.3s ease;
+        }
+        
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .modal-content h2 {
+            color: #2d3748;
+            margin-bottom: 15px;
+            font-size: 24px;
+        }
+        
+        .modal-content p {
+            color: #4a5568;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        .modal-content ul {
+            color: #4a5568;
+            line-height: 1.8;
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .modal-button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .modal-button.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .modal-button.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .modal-button.secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+        
+        .modal-button.secondary:hover {
+            background: #cbd5e0;
+        }
+        
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .refresh-button {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>🚨 Cash Card Fraud Detection Dashboard</h1>
+                    <div class="timestamp">Last Updated: 2026-04-09 17:04:28 ET</div>
+                </div>
+                <button class="refresh-button" onclick="showRefreshModal()">
+                    🔄 Refresh Data
+                </button>
+            </div>
+        </div>
+        
+        <!-- Refresh Modal -->
+        <div id="refreshModal" class="modal">
+            <div class="modal-content">
+                <h2>🔄 Refresh Dashboard Data</h2>
+                <p>This dashboard shows embedded data from your last update.</p>
+                <p>To get fresh data, ask your assistant:</p>
+                <p style="background: #f7fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea;">
+                    <strong>"Update the complete dashboard"</strong>
+                </p>
+                <p>Your assistant will:</p>
+                <ul style="color: #4a5568; line-height: 1.8; margin-left: 20px;">
+                    <li>Run Snowflake queries (~30 seconds)</li>
+                    <li>Create a new HTML file with fresh data</li>
+                    <li>You'll refresh your browser to see updates</li>
+                </ul>
+                <div class="modal-buttons">
+                    <button class="modal-button secondary" onclick="closeRefreshModal()">Got it!</button>
+                    <button class="modal-button primary" onclick="copyRefreshCommand()">📋 Copy Command</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="alertBanner" class="alert success">
+            ✅ All Systems Normal
+        </div>
+        
+        <!-- Week-over-Week Comparison -->
+        <div class="wow-card">
+            <h3>📅 Week-over-Week Comparison</h3>
+            <div class="wow-grid">
+                <div class="wow-stat">
+                    <div class="label">Total Claims</div>
+                    <div class="value">59,019</div>
+                    <div class="sublabel" style="opacity: 0.8; font-size: 11px;">This Week</div>
+                    <div class="change up">↑ 8.93%</div>
+                </div>
+                <div class="wow-stat">
+                    <div class="label">Unique Customers</div>
+                    <div class="value">38,798</div>
+                    <div class="sublabel" style="opacity: 0.8; font-size: 11px;">This Week</div>
+                    <div class="change up">↑ 0.21%</div>
+                </div>
+                <div class="wow-stat">
+                    <div class="label">Total Amount</div>
+                    <div class="value">$4.27M</div>
+                    <div class="sublabel" style="opacity: 0.8; font-size: 11px;">This Week</div>
+                    <div class="change down">↓ 26.96%</div>
+                </div>
+            </div>
+            <div style="margin-top: 15px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px; font-size: 13px;">
+                <strong>⚠️ Fraud Alert:</strong> Claims up 8.93% but amounts down 26.96% = Possible fraud testing with low-value transactions
+            </div>
+        </div>
+        
+        <!-- Fraud Spike Alert -->
+        <div class="fraud-spike-alert">
+            <h3>
+                <span style="font-size: 28px;">⚠️</span>
+                FRAUD PATTERN DETECTED - High-Frequency Filers Active
+            </h3>
+            <div class="fraud-spike-details">
+                <div class="fraud-spike-stat">
+                    <div class="label">10+ Disputes/Hour</div>
+                    <div class="value">7</div>
+                    <div class="label">customers (24h)</div>
+                </div>
+                <div class="fraud-spike-stat">
+                    <div class="label">Peak Fraud Hour</div>
+                    <div class="value">15:00</div>
+                    <div class="label">4 customers, 61 disputes</div>
+                </div>
+                <div class="fraud-spike-stat">
+                    <div class="label">Total Fraud Disputes</div>
+                    <div class="value">153</div>
+                    <div class="label">in last 24 hours</div>
+                </div>
+                <div class="fraud-spike-stat">
+                    <div class="label">Fraud Amount</div>
+                    <div class="value">$78.64</div>
+                    <div class="label">disputed</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="label">Total Claims</div>
+                <div class="value" id="totalClaims">581</div>
+                <div class="sublabel">(Today So Far - Midnight to Now)</div>
+                <div class="trend negative" id="trendPrevHour">
+                    <span>↓</span>
+                    <span>5.2%</span>
+                    <span style="font-size: 11px;">vs prev hour</span>
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="label">Unique Customers</div>
+                <div class="value" id="uniqueCustomers">382</div>
+                <div class="sublabel">(Current Hour)</div>
+                <div class="trend positive" id="trendYesterday">
+                    <span>↑</span>
+                    <span>12.3%</span>
+                    <span style="font-size: 11px;">vs yesterday</span>
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="label">Fraud Alerts</div>
+                <div class="value" id="fraudAlerts" style="color: #f56565;">7</div>
+                <div class="sublabel">(10+ Disputes/Hour in 24h)</div>
+                <div class="status-badge spike">FRAUD DETECTED</div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="label">Avg Claim Amount</div>
+                <div class="value" id="avgAmount">$0.00</div>
+                <div class="sublabel">(Current Hour)</div>
+                <div id="statusBadge" class="status-badge normal">NORMAL</div>
+            </div>
+        </div>
+        
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3>📊 24-Hour Volume Trend with Fraud Markers</h3>
+                <div class="chart-container">
+                    <canvas id="volumeChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <h3>🎯 Dispute Frequency Breakdown (Fraud Detection)</h3>
+                <div class="chart-container">
+                    <canvas id="frequencyChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Day of Week Pattern -->
+        <div class="chart-card full-width">
+            <h3>📅 Day-of-Week Pattern Analysis (Last 4 Weeks Average)</h3>
+            <div class="chart-container">
+                <canvas id="dayOfWeekChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Average Amount Trend -->
+        <div class="chart-card full-width">
+            <h3>💰 Average Dispute Amount Trend (7 Days) - Fraud Testing Indicator</h3>
+            <div class="chart-container">
+                <canvas id="amountTrendChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Hourly Heatmap -->
+        <div class="chart-card full-width">
+            <h3>🔥 Hourly Volume Heatmap (7 Days × 24 Hours)</h3>
+            <div class="chart-container tall">
+                <canvas id="heatmapChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Two Column Layout -->
+        <div class="two-column-layout">
+            <!-- High-Risk Repeat Customers -->
+            <div class="risk-alert-card">
+                <h3>
+                    <span style="font-size: 24px;">🚨</span>
+                    HIGH-RISK REPEAT CUSTOMERS (10+ Disputes in 7 Days)
+                </h3>
+                <div class="scrollable-table">
+                    <table class="risk-table">
+                        <thead>
+                            <tr>
+                                <th>Risk Level</th>
+                                <th>C_Token</th>
+                                <th>Total Disputes</th>
+                                <th>Total Amount</th>
+                                <th>Last Dispute</th>
+                            </tr>
+                        </thead>
+                        <tbody id="riskTableBody">
+                            <!-- Populated with JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Top Merchants -->
+            <div class="merchant-card">
+                <h3>🏪 Top Merchants with Disputes (7 Days)</h3>
+                <div id="merchantList">
+                    <!-- Populated with JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Real Data
+        const highRiskCustomers = [
+            { token: "C_09c220yqz", disputes: 400, amount: 28515.66, lastDispute: "2026-04-02 22:14" },
+            { token: "C_n4eedhm0q", disputes: 395, amount: 37183.00, lastDispute: "2026-04-02 13:45" },
+            { token: "C_s4ccehy8x", disputes: 300, amount: 22391.07, lastDispute: "2026-04-01 23:03" },
+            { token: "C_fm2c28y0r", disputes: 253, amount: 13781.53, lastDispute: "2026-04-02 08:37" },
+            { token: "C_0jcnj0myw", disputes: 214, amount: 15278.98, lastDispute: "2026-04-01 12:12" },
+            { token: "C_fqcp10m4b", disputes: 201, amount: 25023.70, lastDispute: "2026-04-03 23:53" },
+            { token: "C_fsdcwgya4", disputes: 201, amount: 7181.06, lastDispute: "2026-04-04 20:59" },
+            { token: "C_s4cw1pmte", disputes: 152, amount: 12654.64, lastDispute: "2026-04-03 19:37" },
+            { token: "C_54dp2gm9d", disputes: 149, amount: 28113.00, lastDispute: "2026-04-01 13:14" },
+            { token: "C_f0dwa8mh2", disputes: 132, amount: 8967.53, lastDispute: "2026-04-02 00:07" }
+        ];
+        
+        const topMerchants = [
+            { name: "Apple.com Bill", disputes: 1320, customers: 686, amount: 10835.58, category: "REG_E" },
+            { name: "Fanduelcasprimary", disputes: 394, customers: 17, amount: 35793.00, category: "REG_E", fraud: true },
+            { name: "Uber Eats", disputes: 565, customers: 527, amount: 11024.51, category: "GOODS_AND_SERVICE" },
+            { name: "Apple Pay", disputes: 330, customers: 63, amount: 35635.51, category: "REG_E", fraud: true },
+            { name: "Walmart.com", disputes: 389, customers: 373, amount: 39325.71, category: "GOODS_AND_SERVICE" },
+            { name: "Amazon Mktplace", disputes: 349, customers: 321, amount: 37788.48, category: "GOODS_AND_SERVICE" },
+            { name: "Apple Cash Sent", disputes: 384, customers: 290, amount: 72042.04, category: "REG_E" }
+        ];
+        
+        // Populate risk table
+        const riskTableBody = document.getElementById('riskTableBody');
+        highRiskCustomers.forEach(customer => {
+            const row = document.createElement('tr');
+            let riskLevel, riskClass;
+            if (customer.disputes >= 200) {
+                riskLevel = 'CRITICAL';
+                riskClass = 'critical';
+            } else if (customer.disputes >= 100) {
+                riskLevel = 'HIGH';
+                riskClass = 'high';
+            } else {
+                riskLevel = 'MEDIUM';
+                riskClass = 'medium';
+            }
+            
+            row.innerHTML = `
+                <td><span class="risk-badge ${riskClass}">${riskLevel}</span></td>
+                <td><strong>${customer.token}</strong></td>
+                <td><strong>${customer.disputes}</strong></td>
+                <td>$${customer.amount.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                <td>${customer.lastDispute}</td>
+            `;
+            riskTableBody.appendChild(row);
+        });
+        
+        // Populate merchant list
+        const merchantList = document.getElementById('merchantList');
+        topMerchants.forEach(merchant => {
+            const fraudRatio = merchant.disputes / merchant.customers;
+            const isFraudRisk = fraudRatio > 10 || merchant.fraud;
+            
+            const item = document.createElement('div');
+            item.className = isFraudRisk ? 'merchant-item fraud-risk' : 'merchant-item';
+            item.innerHTML = `
+                <div class="merchant-name">
+                    ${merchant.name}
+                    ${isFraudRisk ? '<span style="color: #f56565; margin-left: 8px;">⚠️ FRAUD RISK</span>' : ''}
+                </div>
+                <div class="merchant-stats">
+                    <div class="merchant-stat-item">
+                        <div class="merchant-stat-label">Disputes</div>
+                        <div class="merchant-stat-value">${merchant.disputes}</div>
+                    </div>
+                    <div class="merchant-stat-item">
+                        <div class="merchant-stat-label">Customers</div>
+                        <div class="merchant-stat-value">${merchant.customers}</div>
+                    </div>
+                    <div class="merchant-stat-item">
+                        <div class="merchant-stat-label">Ratio</div>
+                        <div class="merchant-stat-value" style="color: ${isFraudRisk ? '#f56565' : '#2d3748'};">${fraudRatio.toFixed(1)}:1</div>
+                    </div>
+                </div>
+            `;
+            merchantList.appendChild(item);
+        });
+        
+        // Update timestamp
+        document.getElementById('lastUpdate').textContent = new Date().toLocaleString();
+        
+        // 1. Volume Chart with Fraud Markers
+                const volumeCtx = document.getElementById('volumeChart').getContext('2d');
+        new Chart(volumeCtx, {
+            type: 'line',
+            data: {
+                labels: ["10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00", "00:00", "01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00", "08:00", "09:00"],
+                datasets: [{
+                    label: 'Total Claims',
+                    data: [903, 1445, 894, 903, 968, 878, 1136, 1150, 780, 1574, 924, 702, 447, 440, 382, 306, 265, 286, 268, 264, 310, 449, 622, 581],
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4
+                }, {
+                    label: 'Repeat Customers (10+/hour)',
+                    data: [112, 129, 103, 119, 121, 125, 115, 135, 107, 97, 95, 87, 57, 55, 47, 35, 35, 36, 28, 28, 33, 49, 92, 67],
+                    borderColor: '#f56565',
+                    backgroundColor: 'rgba(245, 101, 101, 0.2)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 6,
+                    pointBackgroundColor: '#f56565'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true, position: 'top' }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { callback: value => value.toLocaleString() }
+                    }
+                }
+            }
+        });
+        
+        // 2. Frequency Breakdown Chart
+        const frequencyCtx = document.getElementById('frequencyChart').getContext('2d');
+        new Chart(frequencyCtx, {
+            type: 'bar',
+            data: {
+                labels: ['14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', 
+                         '22:00', '23:00', '00:00', '01:00', '02:00'],
+                datasets: [{
+                    label: '10+ Disputes (FRAUD)',
+                    data: [0, 4, 0, 2, 0, 0, 1, 0, 0, 0, 1, 0, 0],
+                    backgroundColor: '#f56565',
+                    borderRadius: 6
+                }, {
+                    label: '6-10 Disputes',
+                    data: [0, 2, 3, 3, 1, 1, 1, 1, 0, 2, 0, 0, 1],
+                    backgroundColor: '#ed8936',
+                    borderRadius: 6
+                }, {
+                    label: '2-5 Disputes',
+                    data: [4, 18, 18, 15, 19, 28, 30, 26, 19, 19, 16, 14, 5],
+                    backgroundColor: '#48bb78',
+                    borderRadius: 6
+                }, {
+                    label: 'Single Dispute',
+                    data: [68, 332, 306, 337, 371, 312, 294, 304, 250, 275, 254, 226, 58],
+                    backgroundColor: '#667eea',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true, position: 'top' }
+                },
+                scales: {
+                    x: { stacked: true },
+                    y: { 
+                        stacked: true, 
+                        beginAtZero: true,
+                        title: { display: true, text: 'Number of Customers' }
+                    }
+                }
+            }
+        });
+        
+        // 3. Day of Week Pattern
+        const dayOfWeekCtx = document.getElementById('dayOfWeekChart').getContext('2d');
+        new Chart(dayOfWeekCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+                datasets: [{
+                    label: 'Average Daily Claims',
+                    data: [30286, 27350, 33557, 34194, 32874, 30740, 30699],
+                    backgroundColor: ['#667eea', '#667eea', '#f56565', '#f56565', '#667eea', '#667eea', '#667eea'],
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { callback: value => value.toLocaleString() }
+                    }
+                }
+            }
+        });
+        
+        // 4. Amount Trend Chart
+        const amountTrendCtx = document.getElementById('amountTrendChart').getContext('2d');
+        const last24Hours = [1093, 1994, 1560, 2080, 2027, 1574, 581];
+        const avgAmounts = [35.39, 29.54, 38.28, 21.65, 18.82, 0.0, 0.0];
+        
+        new Chart(amountTrendCtx, {
+            type: 'line',
+            data: {
+                labels: ['02:00', '01:00', '00:00', '23:00', '22:00', '21:00', '20:00', '19:00', 
+                         '18:00', '17:00', '16:00', '15:00', '14:00'],
+                datasets: [{
+                    label: 'Avg Dispute Amount ($)',
+                    data: avgAmounts.reverse(),
+                    borderColor: '#48bb78',
+                    backgroundColor: 'rgba(72, 187, 120, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    yAxisID: 'y'
+                }, {
+                    label: 'Total Claims',
+                    data: last24Hours.reverse(),
+                    borderColor: '#667eea',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false,
+                    tension: 0.4,
+                    yAxisID: 'y1'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true, position: 'top' }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        position: 'left',
+                        title: { display: true, text: 'Avg Amount ($)' },
+                        beginAtZero: true
+                    },
+                    y1: {
+                        type: 'linear',
+                        position: 'right',
+                        title: { display: true, text: 'Total Claims' },
+                        beginAtZero: true,
+                        grid: { drawOnChartArea: false }
+                    }
+                }
+            }
+        });
+        
+        // 5. Heatmap Chart (using bar chart for simplicity)
+        const heatmapCtx = document.getElementById('heatmapChart').getContext('2d');
+        
+        // Aggregate heatmap data by hour across all days
+        const heatmapData = {
+            '00:00': 329, '01:00': 304, '02:00': 272, '03:00': 252, '04:00': 237, '05:00': 212,
+            '06:00': 159, '07:00': 171, '08:00': 146, '09:00': 148, '10:00': 159, '11:00': 237,
+            '12:00': 379, '13:00': 514, '14:00': 454, '15:00': 547, '16:00': 545, '17:00': 593,
+            '18:00': 579, '19:00': 566, '20:00': 653, '21:00': 602, '22:00': 478, '23:00': 399
+        };
+        
+        new Chart(heatmapCtx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(heatmapData),
+                datasets: [{
+                    label: 'Average Hourly Claims (7-Day Pattern)',
+                    data: Object.values(heatmapData),
+                    backgroundColor: Object.values(heatmapData).map(val => {
+                        if (val > 600) return '#f56565'; // Hot - Red
+                        if (val > 500) return '#ed8936'; // Warm - Orange
+                        if (val > 400) return '#ecc94b'; // Medium - Yellow
+                        if (val > 300) return '#48bb78'; // Cool - Green
+                        return '#667eea'; // Cold - Blue
+                    }),
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `Avg Claims: ${context.parsed.y.toLocaleString()}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Average Claims' },
+                        ticks: { callback: value => value.toLocaleString() }
+                    },
+                    x: {
+                        title: { display: true, text: 'Hour of Day (UTC)' }
+                    }
+                }
+            }
+        });
+        
+        // Modal functions
+        function showRefreshModal() {
+            document.getElementById('refreshModal').style.display = 'block';
+        }
+        
+        function closeRefreshModal() {
+            document.getElementById('refreshModal').style.display = 'none';
+        }
+        
+        function copyRefreshCommand() {
+            const command = 'Update the complete dashboard';
+            navigator.clipboard.writeText(command).then(() => {
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    closeRefreshModal();
+                }, 1500);
+            }).catch(err => {
+                alert('Command: "Update the complete dashboard"\n\nCopy this and send it to your assistant!');
+                closeRefreshModal();
+            });
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('refreshModal');
+            if (event.target === modal) {
+                closeRefreshModal();
+            }
+        }
+    </script>
+</body>
+</html>
